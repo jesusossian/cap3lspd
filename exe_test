@@ -1,0 +1,7 @@
+#!/bin/bash
+model=lr #randdpheurCCfo
+solver=Gurobi #CPLEX
+cap=1.5 #1.75 2.0
+
+echo "instance;bestbound;opt;time;nodes" >> saida.txt
+julia threeplsp.jl --inst instances/N50T15/N50T15P1W10DD_DF3.dat --form ${model} --capacity ${cap}
