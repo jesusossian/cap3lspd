@@ -1,7 +1,5 @@
 module Data
 
-
-
 struct InstanceData
 	NR::Int #number of retailers
 	NT::Int #number of periods
@@ -134,7 +132,6 @@ function readData(instanceFile,params)
 		write(f,"$instanceFile")
 	end
 
-
 	cumdem = zeros(Int,NR,NT,NT)
 
 	for r in 1:NR, t in 1:NT
@@ -153,7 +150,6 @@ end
 
 function calculateDeltas(NW,NR,balanced)
 
-
 	DeltaW = Vector{Vector{Int}}(undef,NW)
 	DeltamR = zeros(Int,NR)
 
@@ -162,7 +158,6 @@ function calculateDeltas(NW,NR,balanced)
 	end
 
 	retperwar = calculateretperwar(NW,NR,balanced)
-
 
 	r = 0
 	for w in 1:NW
@@ -173,7 +168,6 @@ function calculateDeltas(NW,NR,balanced)
 		end
 	end
 
-
 	#println("DeltaW: ")
 	#for w in 1:NW
 	#	println(DeltaW[w])
@@ -182,9 +176,7 @@ function calculateDeltas(NW,NR,balanced)
 	#println("DeltamR ")
 	#println(DeltamR)
 
-
 	return DeltaW,DeltamR
-
 
 end #function calculateDeltas()
 
@@ -192,7 +184,6 @@ end #function calculateDeltas()
 function calculateretperwar(NW,NR,balanced)
 
 	retperwar = zeros(Int,NW) #stores the number of retailers in each warehouse
-
 
 	if balanced == 1
 		if mod(NR,NW) == 0
@@ -327,6 +318,5 @@ function calculateretperwar(NW,NR,balanced)
 	return retperwar
 
 end #function calculateretperwar(NW,NR,balanced)
-
 
 end

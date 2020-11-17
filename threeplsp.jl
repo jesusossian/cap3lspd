@@ -16,7 +16,6 @@ import NewFormulations
 import Heuristics
 import DPHeuristics
 import DPHeuristicsCC
-import BranchAndCut
 import LagrangianRelaxation
 
 # Read the parameters from command line
@@ -59,6 +58,4 @@ elseif params.form == "bc3level" || params.form == "randdpheurbc3level"
    BranchAndCut.bcthreelevelFormulation(inst, params)
 elseif params.form == "lr" && params.capacity != 0
    LagrangianRelaxation.lagrangianRelaxation(inst,params)
-#elseif params.form == "cuttingplane"
-#   BranchAndCut.cuttingplanestandardFormulation(inst, params)
 end

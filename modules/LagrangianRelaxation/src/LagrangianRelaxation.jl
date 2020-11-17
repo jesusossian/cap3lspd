@@ -19,20 +19,12 @@ mutable struct stdFormVars
 	sw
 end
 
-
-
 function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
-	println("Entering LagrangianRelaxation.lagrangianRelaxation")
-
-
 
 	lrmaxiter = 120
 
-
 	lowerbounds = Vector{Float64}()
 	upperbounds = Vector{Float64}()
-
-
 
 	alpha = 1.6
 	lambda = zeros(Float64,inst.NT)
@@ -41,17 +33,15 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 	bestupperbound = Inf
 	bestlowerbound = -Inf
 
-
 	bestSETR,bestSETW,bestSETP,bestupperbound = DPHeuristicsCC.RandomizedDPHeuristicBottomUpCC(inst,params)
 
 	noimprovements = 0
 
 	for iter in 1:lrmaxiter
-
 		println("iteration $(iter)")
 
 		#value_current,xp_vals,yp_vals = standardFormulation(inst,params,lambda)
-		value_current,xp_vals,yp_vals = multicommodityFormulation(inst,params,lambda)
+		value_current, xp_vals, yp_vals = multicommodityFormulation(inst,params,lambda)
 		println(value_current,"   X   ",bestlowerbound)
 
 		if value_current > bestlowerbound + 0.000001
@@ -68,20 +58,18 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 
 		upperbound_current = bestupperbound
 
-		push!(lowerbounds,value_current)
+		#push!(lowerbounds,value_current)
+		push!(lowerbounds,bestlowerbound)
 		push!(upperbounds,upperbound_current)
 
 		if upperbound_current < bestupperbound
 			bestupperbound = upperbound_current
 		end
 
-
-
 		for t in 1:inst.NT
 			G[t] = xp_vals[1,t] - min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp_vals[1,t]
 		end
 		println("Gradient vector = ",G)
-
 
 		stepsize = (bestupperbound*1.05-bestlowerbound)*alpha/sum(G.^2)
 		println("stepsize = ",stepsize)
@@ -91,9 +79,8 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 		end
 		println("lambda = ",lambda)
 
-
 		if noimprovements > 3
-			println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+			#println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 			alpha = alpha/2
 			noimprovements = 0
 			if alpha <= 0.005
@@ -101,18 +88,19 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 			end
 		end
 
+		open("lagrange.txt","a") do f
+			write(f,"$(iter);$bestlowerbound;$bestupperbound;$stepsize; \n")
+		end
+
 	end
 
-	println("upperbounds = ",upperbounds)
+	print("upperbounds = ",upperbounds)
 	println("lowerbounds = ",lowerbounds)
-
 
 end
 
 
-
 function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
-    #println("Running Formulations.standardFormulation")
 
 	if params.solver == "Gurobi"
 		if params.disablesolver == 1 #Disable gurobi cuts and presolve
@@ -146,9 +134,6 @@ function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
     @variable(model,0 <= sr[i=1:inst.NR,t=0:inst.NT] <= Inf)
     @variable(model,0 <= sw[i=1:inst.NW,t=0:inst.NT] <= Inf)
 
-
-
-	#println("Defined variables")
 	### Objective function ###
 	@objective(model, Min,
         sum(inst.SCP[i,t]*yp[i,t] + inst.HCP[i]*sp[i,t] for i=1:inst.NP, t=1:inst.NT)
@@ -156,8 +141,6 @@ function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
         + sum(inst.SCW[i,t]*yw[i,t] + inst.HCW[i]*sw[i,t] for i=1:inst.NW, t=1:inst.NT)
 		+ sum( lambda[t]*(xp[1,t] - min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]) for t=1:inst.NT)
 	)
-
-	#println("Finished objective function")
 
 	### Setup constraints ###
 	@constraint(model,
@@ -169,8 +152,6 @@ function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
 	@constraint(model,
 				setupR[i=1:inst.NR, t=1:inst.NT], xr[i,t] <= sum(inst.D[i,k] for k in t:inst.NT)*yr[i,t]
 				)
-
-	#println("Finished setup constraints")
 
 	### no initial inventory
 	@constraint(model,
@@ -185,8 +166,6 @@ function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
 				zeroinvR[r=1:inst.NR],
 				sr[r,0] == 0
 				)
-
-	#println("Finished zero inventory constraints")
 
 	### Balance constraints ###
 	@constraint(model,
@@ -204,16 +183,16 @@ function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
-	bestsol = getobjectivevalue(model)
+	#bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
-	numnodes = getnodecount(model)
-	time = getsolvetime(model)
-	gap = 100*(bestsol-bestbound)/bestsol
+	#numnodes = getnodecount(model)
+	#time = getsolvetime(model)
+	#gap = 100*(bestsol-bestbound)/bestsol
 	#println("bestsol = ", bestsol)
 	#println("bestbound = ", bestbound)
     #println("gap = ", gap)
@@ -224,25 +203,22 @@ function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
 	#	write(f,";$(params.form);$bestbound;$bestsol;$gap;$time;$numnodes;$(params.disablesolver) \n")
 	#end
 
-#	if params.printsol == 1
-#		printStandardFormulationSolution(inst,xp,xr,xw,yp,yr,yw,sp,sr,sw)
-#	end
-
+	#if params.printsol == 1
+	#	printStandardFormulationSolution(inst,xp,xr,xw,yp,yr,yw,sp,sr,sw)
+	#end
 
 	xp_vals = getvalue(xp)
 	yp_vals = getvalue(yp)
 
-	println("xp_vals = ",xp_vals)
-	println("xp_vals = ",yp_vals)
+	#println("xp_vals = ",xp_vals)
+	#println("xp_vals = ",yp_vals)
 
 	return bestbound,xp_vals,yp_vals
-
 
 end #function standardFormulation()
 
 
 function multicommodityFormulation(inst::InstanceData, params::ParameterData,lambda)
-	#println("Running Formulations.multicommodityFormulation")
 
 	if params.solver == "Gurobi"
 		if params.disablesolver == 1 #Disable gurobi cuts and presolve
@@ -251,7 +227,6 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData,lam
 		   else
 			   model = Model(solver = GurobiSolver(TimeLimit=params.maxtime,MIPGap=params.tolgap,CliqueCuts=0, CoverCuts=0, FlowCoverCuts=0,FlowPathCuts=0,MIRCuts=0,NetworkCuts=0,GomoryPasses=0, PreCrush=1,Method=2))
 		   end
-
 	   else
 		   if params.maxnodes < 999.0
 			   model = Model(solver = GurobiSolver(TimeLimit=params.maxtime,MIPGap=params.tolgap,PreCrush=1,NodeLimit=params.maxnodes,Method=2))
@@ -270,16 +245,17 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData,lam
 	@variable(model,0 <= xxp[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT] <= Inf)
 	@variable(model,0 <= xxr[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT] <= Inf)
 	@variable(model,0 <= xxw[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT] <= Inf)
-	@variable(model, yp[p=1:inst.NP,t=1:inst.NT], Bin)
-	@variable(model, yr[r=1:inst.NR,t=1:inst.NT], Bin)
-	@variable(model, yw[w=1:inst.NW,t=1:inst.NT], Bin)
+	#@variable(model, yp[p=1:inst.NP,t=1:inst.NT], Bin)
+	#@variable(model, yr[r=1:inst.NR,t=1:inst.NT], Bin)
+	#@variable(model, yw[w=1:inst.NW,t=1:inst.NT], Bin)
+	@variable(model, 0 <= yp[p=1:inst.NP,t=1:inst.NT] <= 1)
+	@variable(model, 0 <= yr[r=1:inst.NR,t=1:inst.NT] <= 1)
+	@variable(model, 0 <= yw[w=1:inst.NW,t=1:inst.NT] <= 1)
 	@variable(model,0 <= ssp[r=1:inst.NR,t=0:inst.NT-1,k=t+1:inst.NT] <= Inf)
 	@variable(model,0 <= ssr[r=1:inst.NR,t=0:inst.NT-1,k=t+1:inst.NT] <= Inf)
 	@variable(model,0 <= ssw[r=1:inst.NR,t=0:inst.NT-1,k=t+1:inst.NT] <= Inf)
 	@variable(model,0 <= xp[i=1:inst.NP,t=1:inst.NT] <= Inf)
 
-
-	#println("Defined variables")
 	### Objective function ###
 	@objective(model, Min,
 		sum(inst.SCP[p,t]*yp[p,t] for p=1:inst.NP, t=1:inst.NT) + sum(inst.HCP[1]*ssp[r,k,t] for r=1:inst.NR,k=1:inst.NT-1,t= k+1:inst.NT)
@@ -287,8 +263,6 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData,lam
 		+ sum(inst.SCR[r,t]*yr[r,t]  for r=1:inst.NR, t=1:inst.NT) + sum(inst.HCR[r]*ssr[r,k,t] for r=1:inst.NR,k=1:inst.NT-1,t= k+1:inst.NT)
 		+ sum( lambda[t]*(xp[1,t] - min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]) for t=1:inst.NT)
 	)
-
-	#println("Finished objective function")
 
 	### Setup constraints ###
 	@constraint(model,
@@ -301,14 +275,9 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData,lam
 				setupR[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT], xxr[r,t,k] <= inst.D[r,k]*yr[r,t]
 				)
 
-
 	@constraint(model,
 				prodVariables[t=1:inst.NT], xp[1,t] == sum(xxp[r,t,k] for r=1:inst.NR,k=t:inst.NT)
 	)
-
-
-
-	#println("Finished setup constraints")
 
 	### no initial inventory
 	@constraint(model,
@@ -324,19 +293,15 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData,lam
 				ssr[r,0,t] == 0
 				)
 
-	#println("Finished zero inventory constraints")
-
 	### Balance constraints ###
 	@constraint(model,
 				balanceP[r=1:inst.NR, t=1:inst.NT, k=t:inst.NT],
 				ssp[r,t-1,k] + xxp[r,t,k] == xxw[r,t,k] + sum(ssp[r,t,z] for z in k:k if t<z)
 				)
-	#println("h")
 	@constraint(model,
 				balanceW[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT],
 				ssw[r,t-1,k] + xxw[r,t,k] == xxr[r,t,k] + sum(ssw[r,t,z] for z in k:k if t<z)
 				)
-	#println("h1")
 	@constraint(model,
 				balanceR[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT],
 				ssr[r,t-1,k] + xxr[r,t,k] == sum(inst.D[r,z] for z in k:k if t==k) + sum(ssr[r,t,z] for z in k:k if t<k)
@@ -344,16 +309,17 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData,lam
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
-	bestsol = getobjectivevalue(model)
+	#bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
-	numnodes = getnodecount(model)
-	time = getsolvetime(model)
-	gap = 100*(bestsol-bestbound)/bestsol
+	#numnodes = getnodecount(model)
+	#time = getsolvetime(model)
+	#gap = 100*(bestsol-bestbound)/bestsol
+
 	#println("bestsol = ", bestsol)
 	#println("bestbound = ", bestbound)
     #println("gap = ", gap)
@@ -368,20 +334,13 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData,lam
 #		printStandardFormulationSolution(inst,xp,xr,xw,yp,yr,yw,sp,sr,sw)
 #	end
 
-
 	xp_vals = getvalue(xp)
 	yp_vals = getvalue(yp)
-	println("xp_vals = ",xp_vals)
-	println("xp_vals = ",yp_vals)
+	#println("xp_vals = ",xp_vals)
+	#println("xp_vals = ",yp_vals)
 
 	return bestbound,xp_vals,yp_vals
 
 end #function multicommodityFormulation()
-
-
-
-
-
-
 
 end
