@@ -40,8 +40,8 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 	for iter in 1:lrmaxiter
 		println("iteration $(iter)")
 
-		#value_current,xp_vals,yp_vals = standardFormulation(inst,params,lambda)
-		value_current, xp_vals, yp_vals = multicommodityFormulation(inst,params,lambda)
+		value_current,xp_vals,yp_vals = standardFormulation(inst,params,lambda)
+		#value_current, xp_vals, yp_vals = multicommodityFormulation(inst,params,lambda)
 		println(value_current,"   X   ",bestlowerbound)
 
 		if value_current > bestlowerbound + 0.000001
@@ -127,10 +127,13 @@ function standardFormulation(inst::InstanceData, params::ParameterData,lambda)
     @variable(model,0 <= xp[i=1:inst.NP,t=1:inst.NT] <= Inf)
     @variable(model,0 <= xr[i=1:inst.NR,t=1:inst.NT] <= Inf)
     @variable(model,0 <= xw[i=1:inst.NW,t=1:inst.NT] <= Inf)
-    @variable(model, yp[i=1:inst.NP,t=1:inst.NT], Bin)
-    @variable(model, yr[i=1:inst.NR,t=1:inst.NT], Bin)
-    @variable(model, yw[i=1:inst.NW,t=1:inst.NT], Bin)
-    @variable(model,0 <= sp[i=1:inst.NP,t=0:inst.NT] <= Inf)
+    #@variable(model, yp[i=1:inst.NP,t=1:inst.NT], Bin)
+    #@variable(model, yr[i=1:inst.NR,t=1:inst.NT], Bin)
+    #@variable(model, yw[i=1:inst.NW,t=1:inst.NT], Bin)
+	@variable(model, 0 <= yp[p=1:inst.NP,t=1:inst.NT] <= 1)
+	@variable(model, 0 <= yr[r=1:inst.NR,t=1:inst.NT] <= 1)
+	@variable(model, 0 <= yw[w=1:inst.NW,t=1:inst.NT] <= 1)
+	@variable(model,0 <= sp[i=1:inst.NP,t=0:inst.NT] <= Inf)
     @variable(model,0 <= sr[i=1:inst.NR,t=0:inst.NT] <= Inf)
     @variable(model,0 <= sw[i=1:inst.NW,t=0:inst.NT] <= Inf)
 
