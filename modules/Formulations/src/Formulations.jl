@@ -5,6 +5,7 @@ using Gurobi
 using CPLEX
 using Data
 using Parameters
+using Printf
 
 mutable struct stdFormVars
 	xp
@@ -115,14 +116,14 @@ function standardFormulation(inst::InstanceData, params::ParameterData)
 	end
 
 	### Capacity constraints ###
-	#@constraint(model, capacity[i=1:inst.NP, t=1:inst.NT], xp[i,t] <= min(inst.DP[i,t],inst.C[t])*yp[i,t])
+	@constraint(model, capacity[i=1:inst.NP, t=1:inst.NT], xp[i,t] <= min(inst.DP[i,t],inst.C[t])*yp[i,t])
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
 	bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
@@ -203,11 +204,11 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData)
 				setupR[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT], xxr[r,t,k] <= inst.D[r,k]*yr[r,t]
 				)
 
-    if params.capacity != 0.0
-        @constraint(model,
-            capP[t=1:inst.NT], sum(xxp[r,t,k] for r=1:inst.NR,k=t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
-        )
-    end
+    #if params.capacity != 0.0
+	@constraint(model,
+				capP[t=1:inst.NT], sum(xxp[r,t,k] for r=1:inst.NR,k=t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
+        		)
+    #end
 
 	#println("Finished setup constraints")
 
@@ -245,10 +246,10 @@ function multicommodityFormulation(inst::InstanceData, params::ParameterData)
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
 	bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
@@ -374,10 +375,10 @@ function echelonStockFormulation(inst::InstanceData, params::ParameterData)
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
 	bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
@@ -483,12 +484,11 @@ function echelonStockFormulationESN(inst::InstanceData, params::ParameterData)
                 )
 
     #### capacity ####
-	if params.capacity != 0.0
-		@constraint(model,
-                    capP[t=1:inst.NT],
-                    sum(zp[1,t,k]*sdp[1,t,k] for k in t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
-                    )
-	end
+	#if params.capacity != 0.0
+	@constraint(model, capP[t=1:inst.NT],
+				sum(zp[1,t,k]*sdp[1,t,k] for k in t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
+                )
+	#end
 
 	#println("Finished setup constraints")
 
@@ -547,10 +547,10 @@ function echelonStockFormulationESN(inst::InstanceData, params::ParameterData)
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
 	bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
@@ -656,11 +656,11 @@ function echelonStockFormulationESTP(inst::InstanceData, params::ParameterData)
                 )
 
     #### capacity ####
-    if params.capacity != 0.0
-        @constraint(model,
-                    capP[t=1:inst.NT], sum(sxp[1,t,k] for k in t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
-                    )
-    end
+    #if params.capacity != 0.0
+    @constraint(model,
+                capP[t=1:inst.NT], sum(sxp[1,t,k] for k in t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
+                )
+    #end
 
 #	println("Finished setup constraints")
 
@@ -710,10 +710,10 @@ function echelonStockFormulationESTP(inst::InstanceData, params::ParameterData)
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
 	bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
@@ -784,11 +784,11 @@ function echelonStockFormulationESLS(inst::InstanceData, params::ParameterData)
 				setupR[i=1:inst.NR, t=1:inst.NT], xr[i,t] <= sum(inst.D[i,k] for k in t:inst.NT)*yr[i,t]
 				)
 
-    if params.capacity != 0.0
-        @constraint(model,
-                    capP[t=1:inst.NT], xp[1,t] <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
-                    )
-    end
+    #if params.capacity != 0.0
+    @constraint(model,
+                capP[t=1:inst.NT], xp[1,t] <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
+                )
+    #end
 
 	#println("Finished setup constraints")
 
@@ -842,10 +842,10 @@ function echelonStockFormulationESLS(inst::InstanceData, params::ParameterData)
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
 	bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)
@@ -913,11 +913,11 @@ function multicommodityFormulationMCE(inst::InstanceData, params::ParameterData)
 				setupR[r=1:inst.NR,t=1:inst.NT,k=t:inst.NT], xxr[r,t,k] <= inst.D[r,k]*yr[r,t]
 				)
 
-    if params.capacity != 0.0
-        @constraint(model,
-            capP[t=1:inst.NT], sum(xxp[r,t,k] for r=1:inst.NR,k=t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
-        )
-    end
+    #if params.capacity != 0.0
+    @constraint(model,
+				capP[t=1:inst.NT], sum(xxp[r,t,k] for r=1:inst.NR,k=t:inst.NT) <= min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp[1,t]
+    			)
+    #end
 
 	#println("Finished setup constraints")
 
@@ -955,10 +955,10 @@ function multicommodityFormulationMCE(inst::InstanceData, params::ParameterData)
 
 	#writeLP(model,"modelo.lp",genericnames=false)
 
-	t1 = time_ns()
+	#t1 = time_ns()
 	status = solve(model)
-	t2 = time_ns()
-	elapsedtime = (t2-t1)/1.0e9
+	#t2 = time_ns()
+	#elapsedtime = (t2-t1)/1.0e9
 
 	bestsol = getobjectivevalue(model)
 	bestbound = getobjbound(model)

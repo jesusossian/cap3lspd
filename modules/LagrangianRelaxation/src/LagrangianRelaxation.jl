@@ -6,6 +6,7 @@ using CPLEX
 using Data
 using Parameters
 using DPHeuristicsCC
+using Printf
 
 mutable struct stdFormVars
 	xp
@@ -21,7 +22,7 @@ end
 
 function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 
-	lrmaxiter = 120
+	lrmaxiter = 1
 
 	lowerbounds = Vector{Float64}()
 	upperbounds = Vector{Float64}()
@@ -36,6 +37,7 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 	bestSETR,bestSETW,bestSETP,bestupperbound = DPHeuristicsCC.RandomizedDPHeuristicBottomUpCC(inst,params)
 
 	noimprovements = 0
+	qgrad = 0.0
 
 	for iter in 1:lrmaxiter
 		println("iteration $(iter)")
@@ -69,15 +71,16 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 		for t in 1:inst.NT
 			G[t] = xp_vals[1,t] - min(inst.C[t],sum(inst.DP[1,k] for k in t:inst.NT))*yp_vals[1,t]
 		end
-		println("Gradient vector = ",G)
+		#println("Gradient vector = ",G)
 
+		qgrad = sum(G.^2)
 		stepsize = (bestupperbound*1.05-bestlowerbound)*alpha/sum(G.^2)
-		println("stepsize = ",stepsize)
+		#println("stepsize = ",stepsize)
 
 		for t in 1:inst.NT
 			lambda[t] = max(0.0,lambda[t]+stepsize*G[t])
 		end
-		println("lambda = ",lambda)
+		#println("lambda = ",lambda)
 
 		if noimprovements > 3
 			#println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
@@ -89,13 +92,14 @@ function lagrangianRelaxation(inst::InstanceData, params::ParameterData)
 		end
 
 		open("lagrange.txt","a") do f
-			write(f,"$(iter);$bestlowerbound;$bestupperbound;$stepsize; \n")
+			#write(f,"$(iter);$bestlowerbound;$bestupperbound;$stepsize; \n")
+			@printf(f,"%d;%.2f;%.2f;%.2f \n",iter,bestlowerbound,bestupperbound,stepsize)
 		end
 
 	end
 
-	print("upperbounds = ",upperbounds)
-	println("lowerbounds = ",lowerbounds)
+	#print("upperbounds = ",upperbounds)
+	#println("lowerbounds = ",lowerbounds)
 
 end
 
